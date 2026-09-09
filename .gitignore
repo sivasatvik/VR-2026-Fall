@@ -6,6 +6,8 @@ node_modules
 key.key
 cert.cer
 .env
+.startserver-pids/
+__pycache__/
 
 !package.json
 !package-lock.json

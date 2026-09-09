@@ -1,4 +1,48 @@
-killall -q Python
-killall -q node
+#!/bin/sh
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PID_DIR="$SCRIPT_DIR/.startserver-pids"
+
+mkdir -p "$PID_DIR"
+
+stop_server() {
+    pid_file=$1
+    expected_command=$2
+    server_name=$3
+
+    [ -f "$pid_file" ] || return 0
+
+    IFS= read -r pid < "$pid_file" || pid=
+    case "$pid" in
+        ''|*[!0-9]*)
+            printf 'Ignoring invalid %s PID file: %s\n' "$server_name" "$pid_file" >&2
+            rm -f "$pid_file"
+            return 0
+            ;;
+    esac
+
+    if kill -0 "$pid" 2>/dev/null; then
+        command=$(ps -p "$pid" -o command= 2>/dev/null || true)
+        case "$command" in
+            *"$expected_command"*)
+                kill "$pid"
+                ;;
+            *)
+                printf 'Not stopping PID %s: it is no longer the %s server.\n' "$pid" "$server_name" >&2
+                ;;
+        esac
+    fi
+
+    rm -f "$pid_file"
+}
+
+stop_server "$PID_DIR/node.pid" "server/main.js 2026 2026 http" "Node"
+stop_server "$PID_DIR/python.pid" "python/screen_anchor_server.py" "Python"
+
+cd "$SCRIPT_DIR" || exit 1
+
 node server/main.js 2026 2026 http &
-python python/screen_anchor_server.py &
+printf '%s\n' "$!" > "$PID_DIR/node.pid"
+
+python3 python/screen_anchor_server.py &
+printf '%s\n' "$!" > "$PID_DIR/python.pid"
