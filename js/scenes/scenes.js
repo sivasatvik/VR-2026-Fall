@@ -7,6 +7,8 @@ export default () => {
             { name: "jointed"  , path: "./jointed.js"  , public: true },
             { name: "interact" , path: "./interact.js" , public: true },
             { name: "beam"     , path: "./beam.js"     , public: true },
+            { name: "solarSystem", path: "./solarSystem.js", public: true },
+            { name: "spaceSalvage", path: "./spaceSalvage.js", public: true },
       ]
    };
 }
