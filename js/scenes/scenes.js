@@ -9,6 +9,10 @@ export default () => {
             { name: "beam"     , path: "./beam.js"     , public: true },
             { name: "solarSystem", path: "./solarSystem.js", public: true },
             { name: "spaceSalvage", path: "./spaceSalvage.js", public: true },
+            { name: "lines"    , path: "./lines.js"    , public: true },
+            { name: "linefont" , path: "./linefont.js" , public: true },
+            { name: "linefont2", path: "./linefont2.js", public: true },
+            { name: "buddha"   , path: "./buddha.js"   , public: true },
       ]
    };
 }
