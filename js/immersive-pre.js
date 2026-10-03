@@ -577,7 +577,7 @@ function fixEmulatorOffsetSpaces(refSpace) {
 
 function onRequestSession() {
     // With the emulator, end the inline session first, then request again.
-    // The page stops rendering until it is reloaded.
+    // A new inline session starts when XR ends (see onSessionEnded).
     if (emulatorView && emulatorView.style.display == "none") {
         emulatorView.style.display = emulatorViewDisplay;
         return xrSession.end().then(onRequestSession);
@@ -678,6 +678,11 @@ async function onSessionStarted(session) {
         if (session.isImmersive) {
             inputController = new InputController(refSpace);
             xrImmersiveRefSpace = inputController.referenceSpace;
+        } else if (inlineViewerHelper) {
+            // Inline session restarted after XR: keep the same view, and
+            // don't add a second set of mouse and keyboard listeners.
+            inlineViewerHelper.baseRefSpace = refSpace;
+            inlineViewerHelper.dirty = true;
         } else {
             inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
             inlineViewerHelper.setHeight(1.6);
@@ -744,9 +749,15 @@ function onEndSession(session) {
 function onSessionEnded(event) {
     if (event.session.isImmersive) {
         xrButton.setSession(null);
+        isXRMode = false;
 
         // Stop the audio playback when we exit XR.
         // pauseAudio();
+
+        // With the emulator the inline session was ended to enter XR,
+        // so start a new one to keep the scene running on the page.
+        if (emulatorView)
+            navigator.xr.requestSession("inline").then(onSessionStarted);
     }
 }
 
