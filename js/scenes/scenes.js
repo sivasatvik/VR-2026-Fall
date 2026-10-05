@@ -14,6 +14,7 @@ export default () => {
             { name: "orbitalRepairRush", path: "./orbitalRepairRush.js", public: true },
             { name: "beamSphere", path: "./beamSphere.js", public: true },
             { name: "construct" , path: "./construct.js" , public: true },
+            { name: "orbitalRepairRushCoOp", path: "./orbitalRepairRushCoOp.js", public: true },
       ]
    };
 }

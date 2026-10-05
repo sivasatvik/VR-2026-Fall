@@ -1,6 +1,8 @@
 
 function Server(wsPort) {
    var that = this;
+   // Opt-in action channels bypass periodic full-state synchronization.
+   const actionInboxes = Object.create(null);
    this.name = name;
 
    this.call = (name, callback) => {
@@ -193,6 +195,12 @@ function Server(wsPort) {
 
          var obj = JSON.parse(event.data);
 
+         if (obj.actionChannel) {
+            const inbox = actionInboxes[obj.actionChannel];
+            if (inbox) inbox.push(obj);
+            return;
+         }
+
          if (obj.eventType) {
             obj.event.preventDefault = () => { };
             (events_canvas[obj.eventType])(obj.event);
@@ -259,12 +267,14 @@ function Server(wsPort) {
    let msngr_name = name => name + '_updates';
    let index_name = name => name + '_updates_index';
 
-   this.init = (name, default_value) => {
+   this.init = (name, default_value, options = {}) => {
       if (window[name] === undefined)
          window[name] = default_value;
       window[msngr_name(name)] = {};
       window[index_name(name)] = 0;
+      if (options.actionsOnly) actionInboxes[name] = [];
    }
+   this.stopActions = name => delete actionInboxes[name];
 
    this.send = (name, msg_obj) => window[msngr_name(name)][window[index_name(name)]++] = msg_obj;
 
@@ -273,6 +283,18 @@ function Server(wsPort) {
    this.syncInterval = value => syncInterval = value;
 
    this.sync = (name, callback) => {
+      if (actionInboxes[name]) {
+         if (window.clientID === undefined) return;
+         const pending = window[msngr_name(name)];
+         if (Object.keys(pending).length && this.socket?.readyState === 1) {
+            this.broadcastObject({ actionChannel: name, messages: pending });
+            window[msngr_name(name)] = {};
+         }
+         // Apply only the relay's echo, including our own actions, in wire order.
+         for (const packet of actionInboxes[name].splice(0))
+            callback(packet.messages, packet.sender);
+         return;
+      }
       window[name] = server.synchronize(name, syncInterval);
       let m_name = msngr_name(name);
       let isNotEmpty = name => window[name] && Object.keys(window[name]).length >0;
@@ -437,4 +459,3 @@ window.shared = func => {
       channel[clientID].on = data => _shared_result = data;
    return _shared_result;
 }
-
