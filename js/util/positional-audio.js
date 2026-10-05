@@ -33,6 +33,36 @@ if (window.ResonanceAudio) {
 
 }
 
+// Independent emitters for objects with several HTMLAudioElement sound effects.
+// Reuse the spatial nodes on scene reload instead of growing Resonance's source list.
+const idleEmitters = [];
+export function createPositionalEmitter(elements) {
+    // Leave ordinary playback intact if the optional Resonance library is unavailable.
+    if (!resonance) return null;
+    const source = idleEmitters.pop() || resonance.createSource();
+    source.setGain(1);
+    const inputs = elements.map(audio => {
+        const input = audioContext.createMediaElementSource(audio);
+        input.connect(source.input);
+        return input;
+    });
+    let connected = true;
+    return {
+        setPosition: position => {
+            if (connected) source.setPosition(position[0], position[1], position[2]);
+        },
+        disconnect: () => {
+            if (!connected) return;
+            inputs.forEach(input => input.disconnect());
+            source.setGain(0);
+            idleEmitters.push(source);
+            connected = false;
+        },
+    };
+}
+
+export const resumePositionalAudio = () => audioContext.resume();
+
 export async function loadSound(url, bufferSetter) {
     try {
         const response = await fetch(url);

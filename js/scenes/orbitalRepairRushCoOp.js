@@ -1,6 +1,7 @@
 /* Co-op satellite repair: six parts, one shared mission, and looping music. */
 import * as cg from '../render/core/cg.js';
 import { ControllerBeam } from '../render/core/controllerInput.js';
+import { createPositionalEmitter, resumePositionalAudio } from '../util/positional-audio.js';
 
 let cleanup = () => {};
 
@@ -52,6 +53,7 @@ export const init = async (model, ctx, ctxForever = {}) => {
    };
    const startMusic = () => {
       audioEnabled = true;
+      resumePositionalAudio().catch(() => {});
       updateMusic();
    };
    const pauseMusic = () => {
@@ -185,7 +187,8 @@ export const init = async (model, ctx, ctxForever = {}) => {
          audio.volume = audio.loop ? .18 : .45;
          return [action, audio];
       }));
-      return { ...data, node, animated, socket, ownerMarker, label, sounds,
+      const emitter = createPositionalEmitter(Object.values(sounds));
+      return { ...data, node, animated, socket, ownerMarker, label, sounds, emitter,
          heard: {}, previousPosition: data.start.slice(), movedAt: -Infinity,
          socketRadius: data.kind === 'dish' ? .095 : .12,
          hit: data.kind === 'dish' ? node.add().move(0, .06, 0).scale(.15, .20, 1)
@@ -524,6 +527,10 @@ export const init = async (model, ctx, ctxForever = {}) => {
       for (let id = 0; id < parts.length; id++) {
          const part = parts[id];
          const shared = state().parts[id];
+         part.node.identity().move(shared.position);
+         // Transform shared positions into this headset's XR space.
+         // The XR frame already updates this Resonance listener from the headset pose.
+         part.emitter?.setPosition(part.node.getGlobalMatrix().slice(12, 15));
          for (const [action, count] of Object.entries(shared.cues || {})) {
             if (audioEnabled && count > (part.heard[action] || 0)) {
                part.sounds[action].currentTime = 0;
@@ -541,7 +548,6 @@ export const init = async (model, ctx, ctxForever = {}) => {
             if (active && audio.paused) playAudio(audio);
             if (!active && !audio.paused) { audio.pause(); audio.currentTime = 0; }
          }
-         part.node.identity().move(shared.position);
          part.label.identity().move(shared.position[0] - .07, shared.position[1] - .22, shared.position[2]);
          part.animated.identity();
          if (shared.status === 'welded' && part.kind === 'panel')
@@ -565,6 +571,7 @@ export const init = async (model, ctx, ctxForever = {}) => {
       server.stopActions(CHANNEL);
       announcePlayer(false);
       pauseMusic();
+      for (const part of parts) part.emitter?.disconnect();
       window.removeEventListener('pointerdown', startMusic);
       window.removeEventListener('keydown', startMusic);
       window.removeEventListener('blur', pauseMusic);
