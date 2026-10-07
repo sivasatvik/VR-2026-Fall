@@ -13,6 +13,7 @@ export default () => {
             { name: "buddha"    , path: "./buddha.js"    , public: true },
             { name: "beamSphere", path: "./beamSphere.js", public: true },
             { name: "construct" , path: "./construct.js" , public: true },
+            { name: "aiquery"   , path: "./aiquery.js"   , public: true },
       ]
    };
 }
