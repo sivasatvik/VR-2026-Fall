@@ -1,0 +1,286 @@
+[
+  {
+    "id": "mystery",
+    "label": "Mystery",
+    "prompt": "A mysterious system with a frozen ocean world and a volcanic planet inhabited by underground creatures.",
+    "keywords": [
+      "mystery",
+      "mysterious",
+      "frozen",
+      "volcanic",
+      "underground",
+      "creatures"
+    ],
+    "system": {
+      "name": "The Ember Veil",
+      "description": "A frozen sea and a volcanic refuge conceal the traces of a vanished expedition.",
+      "star": {
+        "name": "Vesper",
+        "color": [
+          1.25,
+          0.85,
+          0.7
+        ],
+        "radius": 0.18,
+        "description": "An amber star shines through a thin cloud of ancient cosmic dust."
+      },
+      "planets": [
+        {
+          "name": "Thalassa",
+          "type": "ice",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.09,
+          "orbitRadius": 0.46,
+          "speed": 0.3,
+          "tilt": 0.12,
+          "spin": 0.18,
+          "rings": false,
+          "moon": true,
+          "surface": "Lavender ice plains and violet fissures seal an ocean warmed by hidden mineral vents.",
+          "atmosphere": "A thin nitrogen haze carries drifting crystals.",
+          "life": "Ribbon colonies gather around warm vents beneath the ice.",
+          "discovery": "A repeating pulse rises from a tower buried in the ocean.",
+          "texture": "amethyst-frost"
+        },
+        {
+          "name": "Cindervault",
+          "type": "volcanic",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.08,
+          "orbitRadius": 0.78,
+          "speed": 0.2,
+          "tilt": -0.18,
+          "spin": 0.18,
+          "rings": false,
+          "moon": false,
+          "surface": "Black basalt plains split around narrow rivers of molten orange rock.",
+          "atmosphere": "Dense sulfur clouds obscure the mountain peaks.",
+          "life": "Armored burrowers inhabit cool caverns beneath the lava fields.",
+          "discovery": "Their tunnels form a spiral visible in thermal scans.",
+          "texture": "obsidian-lava"
+        },
+        {
+          "name": "Echo Cairn",
+          "type": "rocky",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.13,
+          "orbitRadius": 1.1,
+          "speed": 0.12,
+          "tilt": 0.3,
+          "spin": 0.18,
+          "rings": false,
+          "moon": false,
+          "surface": "Copper dunes and dry channels surround the remains of a shattered observatory.",
+          "atmosphere": "A faint argon atmosphere settles in deep valleys.",
+          "life": "Dormant spores survive inside translucent stone shells.",
+          "discovery": "The observatory points toward the hidden tower on Thalassa.",
+          "texture": "copper-dunes"
+        }
+      ]
+    }
+  },
+  {
+    "id": "ocean",
+    "label": "Ocean",
+    "prompt": "A peaceful blue star system with ocean life, an icy moon, and a ringed gas giant.",
+    "keywords": [
+      "ocean",
+      "water",
+      "sea",
+      "seas",
+      "peaceful",
+      "blue",
+      "reef",
+      "reefs",
+      "marine",
+      "life"
+    ],
+    "system": {
+      "name": "The Tidal Chorus",
+      "description": "Three blue worlds shelter living reefs, frozen archives, and creatures drifting through clouds.",
+      "star": {
+        "name": "Azure",
+        "color": [
+          0.75,
+          1.05,
+          1.25
+        ],
+        "radius": 0.17,
+        "description": "A pale blue star bathes the system in a steady silver light."
+      },
+      "planets": [
+        {
+          "name": "Cantora",
+          "type": "ocean",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.09,
+          "orbitRadius": 0.46,
+          "speed": 0.3,
+          "tilt": 0.12,
+          "spin": 0.18,
+          "rings": false,
+          "moon": false,
+          "surface": "Turquoise shallows and coral atolls border a deep cobalt ocean.",
+          "atmosphere": "Warm oxygen-rich air carries fine ocean mist.",
+          "life": "Reef colonies communicate through slow waves of colored light.",
+          "discovery": "The reef songs repeat the orbital rhythm of all three worlds.",
+          "texture": "turquoise-reefs"
+        },
+        {
+          "name": "Lacuna",
+          "type": "ice",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.08,
+          "orbitRadius": 0.78,
+          "speed": 0.2,
+          "tilt": -0.18,
+          "spin": 0.18,
+          "rings": false,
+          "moon": true,
+          "surface": "Pale blue glaciers split along deep teal cracks above a hidden ocean.",
+          "atmosphere": "A delicate nitrogen veil forms luminous polar ribbons.",
+          "life": "Microbial mats grow beside heated cracks on the ocean floor.",
+          "discovery": "Ice layers preserve geometric traces older than the reefs.",
+          "texture": "glacial-rifts"
+        },
+        {
+          "name": "Zephyra",
+          "type": "gas",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.13,
+          "orbitRadius": 1.1,
+          "speed": 0.12,
+          "tilt": 0.3,
+          "spin": 0.18,
+          "rings": true,
+          "moon": false,
+          "surface": "Jade and silver cloud belts spiral around deep green storms.",
+          "atmosphere": "Deep hydrogen clouds hold floating mineral droplets.",
+          "life": "Broad translucent floaters drift through temperate cloud layers.",
+          "discovery": "Fragments within the rings emit the same pattern as Cantora.",
+          "texture": "jade-bands"
+        }
+      ]
+    }
+  },
+  {
+    "id": "ruins",
+    "label": "Ruins",
+    "prompt": "The ruins of an ancient civilization around an orange star, with three very different planets.",
+    "keywords": [
+      "ancient",
+      "ruins",
+      "relic",
+      "relics",
+      "civilization",
+      "abandoned",
+      "temple",
+      "temples",
+      "artifact",
+      "artifacts"
+    ],
+    "system": {
+      "name": "The Relic Crown",
+      "description": "Abandoned machines connect a desert world, a volcanic forge, and a giant encircled by debris.",
+      "star": {
+        "name": "Aurum",
+        "color": [
+          1.25,
+          1.0,
+          0.75
+        ],
+        "radius": 0.21,
+        "description": "An orange star illuminates monuments left by an unknown civilization."
+      },
+      "planets": [
+        {
+          "name": "Archivum",
+          "type": "rocky",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.09,
+          "orbitRadius": 0.46,
+          "speed": 0.3,
+          "tilt": 0.12,
+          "spin": 0.18,
+          "rings": false,
+          "moon": true,
+          "surface": "Charcoal plains and blue mineral veins surround the remains of sealed stone archives.",
+          "atmosphere": "Dry carbon dioxide air carries reflective mineral dust.",
+          "life": "Lichen grows inside the shaded doorways of sealed archives.",
+          "discovery": "A map carved into a tower marks a route through the giant rings.",
+          "texture": "crystal-badlands"
+        },
+        {
+          "name": "Ferrum",
+          "type": "volcanic",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.08,
+          "orbitRadius": 0.78,
+          "speed": 0.2,
+          "tilt": -0.18,
+          "spin": 0.18,
+          "rings": false,
+          "moon": false,
+          "surface": "Yellow sulfur deposits surround rust-red calderas and abandoned basalt forges.",
+          "atmosphere": "Sulfur haze glows above ancient exhaust chimneys.",
+          "life": "Heat-resistant cave colonies occupy the abandoned forges.",
+          "discovery": "One forge still produces a pulse when Archivum crosses the star.",
+          "texture": "sulfur-caldera"
+        },
+        {
+          "name": "Diadem",
+          "type": "gas",
+          "color": [
+            1,
+            1,
+            1
+          ],
+          "radius": 0.13,
+          "orbitRadius": 1.1,
+          "speed": 0.12,
+          "tilt": 0.3,
+          "spin": 0.18,
+          "rings": true,
+          "moon": false,
+          "surface": "Violet and cream storm belts swirl beneath a ring of broken orbital stations.",
+          "atmosphere": "Dense hydrogen and helium clouds hide the lower atmosphere.",
+          "life": "No confirmed life appears beneath the station debris.",
+          "discovery": "A silent beacon in the rings points back toward the sealed archives.",
+          "texture": "violet-storms"
+        }
+      ]
+    }
+  }
+]

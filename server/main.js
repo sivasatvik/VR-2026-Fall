@@ -336,6 +336,32 @@ try {
    var wss = new WebSocketServer({ server: server });
    var websockets = [];
    var clients = [];
+   const actionRooms = new Map();
+   const relayActions = (name, sender, messages) => {
+      let room = actionRooms.get(name);
+      if (!room) actionRooms.set(name, room = { sequence: 0, members: new Set() });
+      const stamped = {};
+      for (const [id, msg] of Object.entries(messages)) {
+         if (!msg || typeof msg.op !== 'string') continue;
+         const action = { ...msg, at: Date.now() / 1000, seq: ++room.sequence };
+         if (msg.op === 'join') {
+            action.peers = [...room.members].filter(id => id !== sender);
+            room.members.add(sender);
+         }
+         if (msg.op === 'leave') room.members.delete(sender);
+         stamped[id] = action;
+      }
+      for (const id of new Set([...room.members, sender])) {
+         const socket = websockets[id];
+         if (!socket || socket.readyState !== 1) continue;
+         // Bootstrap state is a one-off reply to the joining client, not a broadcast.
+         const delivered = Object.fromEntries(Object.entries(stamped).filter(([, msg]) =>
+            msg.op !== 'snapshot' || msg.to === id));
+         if (Object.keys(delivered).length)
+            socket.send(JSON.stringify({ actionChannel: name, sender, messages: delivered }));
+      }
+      if (!room.members.size) actionRooms.delete(name);
+   };
 
    wss.on("connection", function(ws) {
 
@@ -349,14 +375,26 @@ try {
       let sendClients = () => {
          let data = JSON.stringify({ global: "clients", value: clients });
          for (var index = 0 ; index < websockets.length ; index++)
-            if (websockets[index])
+            if (websockets[index] && websockets[index].readyState === 1)
                websockets[index].send(data);
       }
       sendClients();
 
       ws.on("message", data => {
+         // This optional route orders actions; clients still apply all game rules.
+         if (data[0] === 123 || data[0] === '{') {
+            let packet;
+            try { packet = JSON.parse(data.toString()); } catch (_) { }
+            if (packet && typeof packet.actionChannel === 'string' &&
+                /^[A-Za-z0-9_]{1,64}$/.test(packet.actionChannel) &&
+                packet.messages && typeof packet.messages === 'object' &&
+                Object.keys(packet.messages).length <= 64) {
+               relayActions(packet.actionChannel, ws.index, packet.messages);
+               return;
+            }
+         }
          for (var index = 0 ; index < websockets.length ; index++)
-            if (websockets[index] && index != ws.index)
+            if (websockets[index] && websockets[index].readyState === 1 && index != ws.index)
                websockets[index].send(data);
 	 if (readHeader(data) == 'CTdata01') {
 	    holojam.Send(holojam.BuildUpdate('ChalkTalk', [{
@@ -368,6 +406,8 @@ try {
 
       ws.on("close", function() {
          websockets[ws.index] = null;        // REMOVE THIS WEBSOCKET
+         for (const [name, room] of actionRooms)
+            if (room.members.has(ws.index)) relayActions(name, ws.index, { 0: { op: 'leave' } });
 	 for (let n = 0 ; n < clients.length ; n++)
 	    if (clients[n] == ws.index)
 	       clients.splice(n--, 1);
@@ -466,11 +506,23 @@ app.route("/api/aiquery").post(function(req, res) {
    const sendFailure = error => {
       console.error('Error calling OpenAI API:', error);
       openAISharedState.lastError = error.message;
-      res.status(500).json({
+      res.status(error.status || 500).json({
          error: "Error processing AI query",
          details: error.message,
+         code: error.code || null,
          state: openAISharedState
       });
+   };
+
+   const readResponse = async response => {
+      if (response.ok) return response.json();
+      const data = await response.json().catch(() => ({}));
+      const code = data?.error?.code || data?.error?.type;
+      const message = data?.error?.message || response.statusText;
+      const error = new Error(`OpenAI API error (${response.status}${code ? ', ' + code : ''}): ${message}`);
+      error.status = response.status;
+      error.code = code;
+      throw error;
    };
 
    const callChatCompletions = () => {
@@ -496,12 +548,7 @@ app.route("/api/aiquery").post(function(req, res) {
          },
          body: JSON.stringify(requestBody)
       })
-      .then(response => {
-         if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-         }
-         return response.json();
-      })
+      .then(readResponse)
       .then(data => {
          const message = (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message : {};
          const responseText = message.content || "";
@@ -571,12 +618,7 @@ app.route("/api/aiquery").post(function(req, res) {
          },
          body: JSON.stringify(requestBody)
       })
-      .then(response => {
-         if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-         }
-         return response.json();
-      })
+      .then(readResponse)
       .then(data => {
          const output = Array.isArray(data.output) ? data.output : [];
          let responseText = "";

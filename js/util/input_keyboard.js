@@ -18,6 +18,10 @@ const input = {
     isInit: false
 };
 
+export function isEditableTarget(target) {
+    return !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+}
+
 export function initKeyEvents(keypoll, doc = document) {
     _keypoll = keypoll;
 

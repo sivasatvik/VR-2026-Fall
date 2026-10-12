@@ -257,6 +257,7 @@ export class InlineViewerHelper {
   }
 
   onKeyDown(e) {
+    if (keyboardInput.isEditableTarget(e.target)) return;
     if (e.keyCode == 32) this._isSpaceKeyDown = true;
     if (e.key == 'Shift') this._isShiftKeyDown = true;
     if (e.key == 'Meta') this._isMetaKeyDown = true;
@@ -279,6 +280,7 @@ export class InlineViewerHelper {
   }
 
   onKeyUp(e) {
+    if (keyboardInput.isEditableTarget(e.target)) return;
     if (this._isControlKeyDown) {
        if (clay.model._controlActions[e.key]) {
           clay.model._controlActions[e.key].func();

@@ -2,6 +2,12 @@
 
 let globalAIQueryInstance = null;
 
+async function readAIResponse(response) {
+    if (response.ok) return response.json();
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.details || data?.error || `HTTP error! status: ${response.status}`);
+}
+
 /**
  * Global function to send an AI query
  * @param {string} prompt - The text prompt to send to the AI
@@ -257,15 +263,7 @@ Here is the query: ${prompt}`;
                     ...options
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        const detail = text ? ` ${text}` : "";
-                        throw new Error(`HTTP error! status: ${response.status}.${detail}`);
-                    });
-                }
-                return response.json();
-            })
+            .then(readAIResponse)
             .then(data => {
                 clearTimeout(timeoutId);
                 resolve(data);
@@ -311,12 +309,7 @@ Here is the query: ${prompt}`;
                     ...options
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(readAIResponse)
             .then(data => {
                 resolve(data.response);
             })

@@ -540,6 +540,7 @@ this.addEventListenersToCanvas = function(canvas) {
    });
 
    window.addEventListener('keydown', function(e) {
+      if (keyboardInput.isEditableTarget(e.target)) return;
       switch (e.keyCode) {
       case   8: // DELETE
       case  32: // SPACE
@@ -557,6 +558,7 @@ this.addEventListenersToCanvas = function(canvas) {
    }, true);
 
    window.addEventListener('keyup', function(e) {
+      if (keyboardInput.isEditableTarget(e.target)) return;
       canvas.onKeyRelease(e.keyCode, e);
    }, true);
 }
