@@ -16,6 +16,8 @@ export default () => {
             { name: "aiquery"    , path: "./aiquery.js"    , public: true },
             { name: "SO101"      , path: "./SO101.js"      , public: true },
             { name: "SO101_parts", path: "./SO101_parts.js", public: true },
+            { name: "hw5_city"   , path: "./hw5_city.js"   , public: true },
+            { name: "hw5_robot"  , path: "./hw5_robot.js"  , public: true },
       ]
    };
 }

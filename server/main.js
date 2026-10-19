@@ -42,7 +42,7 @@ var openAISharedState = {
    outgoingMessage: "",
    incomingMessage: "",
    lastQueryId: null,
-   lastModel: "gpt-5.1",
+   lastModel: process.env.AI_PROVIDER === "ollama" ? (process.env.AI_MODEL || "qwen2.5-coder:7b") : (process.env.OPENROUTER_MODEL || "openrouter/free"),
    lastError: ""
 };
 
@@ -421,6 +421,14 @@ holojam.on('tick', (a, b) => {
 
 app.route("/api/aiquery").post(function(req, res) {
    const { query, queryId, model, messages, tools, tool_choice, parallel_tool_calls, response_format } = req.body;
+   const provider = process.env.AI_PROVIDER || "openrouter";
+   if (!["ollama","openrouter"].includes(provider))
+      return res.status(500).json({error:"AI_PROVIDER must be ollama or openrouter"});
+   const configuredModel = provider === "openrouter" ? (process.env.OPENROUTER_MODEL || "openrouter/free") : (process.env.AI_MODEL || "qwen2.5-coder:7b");
+   if (provider === "openrouter" && configuredModel !== "openrouter/free" && !configuredModel.endsWith(":free"))
+      return res.status(500).json({error:"Only free OpenRouter models are enabled",details:"Set OPENROUTER_MODEL=openrouter/free or a model ID ending in :free."});
+   if (model && model !== configuredModel)
+      return res.status(400).json({ error: `This server uses ${configuredModel}. Change ${provider === "ollama" ? "AI_MODEL" : "OPENROUTER_MODEL"} in .env to select another model.` });
    const hasMessages = Array.isArray(messages) && messages.length > 0;
    const queryText = ((typeof query === "string" ? query : openAISharedState.outgoingMessage) || "").trim();
 
@@ -432,55 +440,77 @@ app.route("/api/aiquery").post(function(req, res) {
       ? ((messages[messages.length - 1] && messages[messages.length - 1].content) || "[messages]")
       : queryText;
    openAISharedState.lastQueryId = queryId === undefined ? null : queryId;
-   openAISharedState.lastModel = model || "gpt-5.1";
+   openAISharedState.lastModel = model || configuredModel;
+   openAISharedState.lastProvider = provider;
+   openAISharedState.fallbackReason = "";
    openAISharedState.lastError = "";
 
-   console.log(`[OpenAI] outgoingMessage: ${openAISharedState.outgoingMessage}`);
-   
-   const apiKey = process.env.OPENAI_API_KEY;
-   if (!apiKey) {
-      console.error('OpenAI API key not found in .env file');
-      openAISharedState.lastError = "OpenAI API key not configured";
-      return res.status(500).json({ 
-         error: "OpenAI API key not configured", 
-         details: "Add OPENAI_API_KEY to your .env file",
-         state: openAISharedState
-      });
-   }
+   console.log(`[AI:${provider}] outgoingMessage: ${openAISharedState.outgoingMessage}`);
    
    const defaultSystem = "You are a helpful assistant in a WebXR environment. Provide concise, informative responses.";
-   const modelToUse = openAISharedState.lastModel;
-   const useResponses = /-codex\\b/i.test(modelToUse);
+   let activeProvider = provider;
+   let activeModel = configuredModel;
+   let fallbackReason = "";
 
    const sendSuccess = (responseText, message) => {
       openAISharedState.incomingMessage = responseText;
+      openAISharedState.lastProvider = activeProvider;
+      openAISharedState.lastModel = activeModel;
+      openAISharedState.fallbackReason = fallbackReason;
       res.json({
          queryId: queryId,
+         provider: activeProvider,
+         model: activeModel,
          response: responseText,
          message: message || { content: responseText },
          state: openAISharedState
       });
-      console.log(`[OpenAI] incomingMessage: ${responseText}`);
+      console.log(`[AI:${activeProvider}] incomingMessage: ${responseText}`);
    };
 
    const sendFailure = error => {
-      console.error('Error calling OpenAI API:', error);
-      openAISharedState.lastError = error.message;
-      res.status(500).json({
+      console.error(`Error calling ${activeProvider} API:`, error);
+      const failure = activeProvider === "ollama" && error.code === "ECONNREFUSED" ? "Cannot reach local Ollama at http://127.0.0.1:11434. Start Ollama on the computer running this server." : error.message;
+      const detail = fallbackReason ? `OpenRouter failed: ${fallbackReason}. Ollama fallback failed: ${failure}` : failure;
+      openAISharedState.lastProvider = activeProvider;
+      openAISharedState.lastModel = activeModel;
+      openAISharedState.fallbackReason = fallbackReason;
+      openAISharedState.lastError = detail;
+      res.status(error.status || (error.type === "request-timeout" ? 504 : 500)).json({
          error: "Error processing AI query",
-         details: error.message,
+         code: error.code,
+         details: detail,
          state: openAISharedState
       });
    };
 
-   const callChatCompletions = () => {
+   const readResponse = async response => {
+      if (!response.ok) {
+         const body = await response.json().catch(() => ({})) || {};
+         const detail = body.error && typeof body.error === "object" ? body.error : body;
+         const code = detail.code;
+         const error = new Error(`${activeProvider} API error (${response.status}${code ? ", " + code : ""}): ${detail.message || (typeof body.error === "string" ? body.error : "") || body.details || response.statusText}`);
+         error.status = response.status;
+         error.code = code;
+         throw error;
+      }
+      return response.json();
+   };
+
+   const callChatCompletions = async targetProvider => {
+      activeProvider = targetProvider;
+      activeModel = targetProvider === "openrouter" ? configuredModel : (process.env.AI_MODEL || "qwen2.5-coder:7b");
+      if (targetProvider === "openrouter" && !process.env.OPENROUTER_API_KEY)
+         throw new Error("OPENROUTER_API_KEY is not configured");
+      // Ollama may bind only IPv4 while Node resolves localhost to IPv6.
+      const baseURL = targetProvider === "ollama" ? "http://127.0.0.1:11434/v1" : "https://openrouter.ai/api/v1";
       const requestMessages = hasMessages ? messages : [
          { role: "system", content: defaultSystem },
          { role: "user", content: queryText }
       ];
 
       const requestBody = {
-         model: modelToUse,
+         model: activeModel,
          messages: requestMessages
       };
       if (tools) requestBody.tools = tools;
@@ -488,127 +518,32 @@ app.route("/api/aiquery").post(function(req, res) {
       if (parallel_tool_calls !== undefined) requestBody.parallel_tool_calls = parallel_tool_calls;
       if (response_format) requestBody.response_format = response_format;
 
-      return fetch('https://api.openai.com/v1/chat/completions', {
+      return fetch(baseURL + '/chat/completions', {
          method: 'POST',
          headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            ...(targetProvider === "openrouter" ? {Authorization:`Bearer ${process.env.OPENROUTER_API_KEY}`} : {})
          },
-         body: JSON.stringify(requestBody)
+         body: JSON.stringify(requestBody),
+         timeout: 150000
       })
-      .then(response => {
-         if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-         }
-         return response.json();
-      })
+      .then(readResponse)
       .then(data => {
-         const message = (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message : {};
+         const message = data.choices && data.choices[0] && data.choices[0].message;
+         if (!message || (!message.content && !(message.tool_calls && message.tool_calls.length)))
+            throw new Error(`${targetProvider} returned no response message`);
          const responseText = message.content || "";
          return { responseText, message };
       });
    };
 
-   const callResponses = () => {
-      const systemMessages = hasMessages
-         ? messages.filter(m => m && m.role === "system" && typeof m.content === "string")
-         : [];
-      const instructions = systemMessages.length ? systemMessages.map(m => m.content).join("\\n") : defaultSystem;
-
-      const input = [];
-      if (hasMessages) {
-         for (const msg of messages) {
-            if (!msg || !msg.role) continue;
-            if (msg.role === "system") continue;
-            if (msg.role === "tool") {
-               if (msg.tool_call_id) {
-                  input.push({
-                     type: "function_call_output",
-                     call_id: msg.tool_call_id,
-                     output: msg.content || ""
-                  });
-               }
-               continue;
-            }
-            if (msg.role === "assistant" && Array.isArray(msg.tool_calls) && msg.tool_calls.length) {
-               if (msg.content) {
-                  input.push({ role: "assistant", content: msg.content });
-               }
-               for (const tc of msg.tool_calls) {
-                  const fn = tc.function || {};
-                  input.push({
-                     type: "function_call",
-                     name: fn.name || tc.name,
-                     arguments: fn.arguments || tc.arguments || "{}",
-                     call_id: tc.id || tc.call_id
-                  });
-               }
-               continue;
-            }
-            if (typeof msg.content === "string") {
-               input.push({ role: msg.role, content: msg.content });
-            }
-         }
-      } else if (queryText) {
-         input.push({ role: "user", content: queryText });
-      }
-
-      const requestBody = {
-         model: modelToUse,
-         instructions: instructions,
-         input: input
-      };
-      if (tools) requestBody.tools = tools;
-      if (tool_choice) requestBody.tool_choice = tool_choice;
-      if (parallel_tool_calls !== undefined) requestBody.parallel_tool_calls = parallel_tool_calls;
-      if (response_format) requestBody.text = { format: response_format };
-
-      return fetch('https://api.openai.com/v1/responses', {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-         },
-         body: JSON.stringify(requestBody)
+   callChatCompletions(provider)
+      .catch(error => {
+         if (provider !== "openrouter") throw error;
+         fallbackReason = error.message;
+         console.error(`[AI:openrouter] ${fallbackReason}; trying local Ollama.`);
+         return callChatCompletions("ollama");
       })
-      .then(response => {
-         if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-         }
-         return response.json();
-      })
-      .then(data => {
-         const output = Array.isArray(data.output) ? data.output : [];
-         let responseText = "";
-         const toolCalls = [];
-
-         for (const item of output) {
-            if (item && item.type === "message" && Array.isArray(item.content)) {
-               for (const part of item.content) {
-                  if (part && part.type === "output_text" && typeof part.text === "string") {
-                     responseText += part.text;
-                  }
-               }
-            } else if (item && item.type === "function_call") {
-               toolCalls.push({
-                  id: item.call_id || item.id,
-                  type: "function",
-                  function: {
-                     name: item.name,
-                     arguments: item.arguments
-                  }
-               });
-            }
-         }
-
-         const message = { content: responseText, tool_calls: toolCalls };
-         return { responseText, message };
-      });
-   };
-
-   const runner = useResponses ? callResponses : callChatCompletions;
-
-   runner()
       .then(({ responseText, message }) => sendSuccess(responseText, message))
       .catch(sendFailure);
 });

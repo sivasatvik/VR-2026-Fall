@@ -2,6 +2,13 @@
 
 let globalAIQueryInstance = null;
 
+const readAIResponse = async response => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok)
+        throw new Error(data.details || data.error || `AI request failed (HTTP ${response.status})`);
+    return data;
+};
+
 /**
  * Global function to send an AI query
  * @param {string} prompt - The text prompt to send to the AI
@@ -116,11 +123,11 @@ export class AIQuery {
      * Constructor for the AIQuery class
      * @param {Object} options - Configuration options
      * @param {string} options.apiEndpoint - The API endpoint to send queries to (default: '/api/aiquery')
-     * @param {number} options.timeout - Timeout in milliseconds (default: 30000)
+     * @param {number} options.timeout - Timeout in milliseconds (default: 330000; allows cloud timeout and local fallback)
      */
     constructor(options = {}) {
         this.apiEndpoint = options.apiEndpoint || '/api/aiquery';
-        this.timeout = options.timeout || 30000;
+        this.timeout = options.timeout || 330000;
         this.pendingQueries = new Map();
         this.queryCounter = 0;
         
@@ -257,15 +264,7 @@ Here is the query: ${prompt}`;
                     ...options
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        const detail = text ? ` ${text}` : "";
-                        throw new Error(`HTTP error! status: ${response.status}.${detail}`);
-                    });
-                }
-                return response.json();
-            })
+            .then(readAIResponse)
             .then(data => {
                 clearTimeout(timeoutId);
                 resolve(data);
@@ -311,12 +310,7 @@ Here is the query: ${prompt}`;
                     ...options
                 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(readAIResponse)
             .then(data => {
                 resolve(data.response);
             })

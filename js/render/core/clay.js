@@ -202,7 +202,7 @@ export function Clay(gl, canvas) {
       this.defineMesh(name, new Float32Array(vertices.flat()));
    }
 
-   this.defineTextMesh = (name, text) => {
+   this.defineTextMesh = (name, text, strokeWidth = .0035) => {
       let myPaths = [], lines = text.split('\n'), c;
       for (let row = 0 ; row < lines.length ; row++)
       for (let col = 0 ; col < lines[row].length ; col++)
@@ -217,7 +217,7 @@ export function Clay(gl, canvas) {
                myPaths.push(myPath);
             }
          }
-      return this.definePathsMesh(name, .0035, myPaths);
+      return this.definePathsMesh(name, strokeWidth, myPaths);
    }
 
    this.defineDataMesh = (name, data, defaults) => {

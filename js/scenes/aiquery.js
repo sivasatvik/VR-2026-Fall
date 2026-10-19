@@ -6,14 +6,13 @@ import { buildSceneTooling } from "../util/scene_tools.js";
 How to try this demo (end-to-end)
 1) Make sure the server is running from project root:
       ./startserver
-2) Make sure OpenAI key is available to server/main.js:
-      .env contains OPENAI_API_KEY=your_key
-   If .env does not exist yet, from project root run:
-      cat > .env << 'EOF'
-      OPENAI_API_KEY=your_key
-      EOF
-   If .env already exists, append key with:
-      echo 'OPENAI_API_KEY=your_key' >> .env
+2) Set OPENROUTER_API_KEY in .env. OpenRouter is the default (openrouter/free).
+   Failed cloud requests automatically fall back to local Ollama using qwen2.5-coder:7b.
+   Run Ollama on the project server's computer for the fallback to be available.
+   Local requests use http://127.0.0.1:11434/v1/chat/completions without a key.
+   .env settings: AI_PROVIDER=openrouter, OPENROUTER_MODEL=openrouter/free,
+   AI_MODEL=qwen2.5-coder:7b. Set AI_PROVIDER=ollama for local-only mode.
+   Restart the project server after changing its code or .env settings.
 3) Open the app in browser and switch to the "aiQuery" scene.
 4) Open browser DevTools console and run one of:
       await askGeneralQuestions("What is WebXR?");

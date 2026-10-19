@@ -12,7 +12,7 @@ let motion = time => [         // EXAMPLE OF JOINT ANIMATION INPUT FOR THE ROBOT
   .2 * Math.sin(time * 1.7)
 ];
 
-export const init = async model => {
+export const createRobot = (model, position = [-.1,1.5,0]) => {
    const printed = [1,.82,.12], motor = [.1,.1,.1];     // COLOR PALETTE FOR THE ROBOT PARTS
 
    // THE MESH OF EACH LINK IS THE NAME OF A FILE IN media/stl/SO101. EACH LINK'S xyz AND rpy ARE RELATIVE TO THAT LINK'S FRAME.
@@ -62,20 +62,23 @@ export const init = async model => {
       { name: 'gripper_frame', parent: 'wrist_roll'    , xyz: [-0.0079   , -0.000218121, -0.0981274], rpy: [ 0      , 3.14159  ,  0      ], fixed: true,                link: 'gripper_frame_link'       },
    ];
 
-   for (const meshList of Object.values(links))         // START LOADING THE ROBOT PARTS
-      for (let mesh of meshList)
-            stl('SO101/' + mesh.stl);
+   const partNames = new Set(Object.values(links).flat().map(mesh => 'SO101/lowpoly/' + mesh.stl));
+   for (const partName of partNames)                   // LOAD SHARED MOTOR MESHES ONLY ONCE
+      if (!clay.formMesh(partName)) stl(partName);
 
-   let robotBaseFrame = model.add().move(-.1,1.5,0).turnX(-Math.PI/2);
+   let robotBaseFrame = model.add().move(position).turnX(-Math.PI/2);
 
    let node = {};                                        // CREATE THE KINEMATIC JOINT HIERARCHY
    node['robotBaseFrame'] = robotBaseFrame;
    for (let j of joints)
       node[j.name] = node[j.parent].add();
 
-   model.animate(() => {
+   const update = (angles = [0,0,0,0,0,0]) => {
+      if (!Array.isArray(angles) || angles.length !== 6 || !angles.every(Number.isFinite))
+         throw new Error('SO101 needs six finite joint angles in radians.');
+      const m = angles.map((angle, i) => cg.clamp(angle, joints[i].lo, joints[i].hi));
       for(let mesh of links['base_link']) {             // CREATE THE ROBOT BASE
-         let partName = 'SO101/' + mesh.stl;
+         let partName = 'SO101/lowpoly/' + mesh.stl;
          if (clay.formMesh(partName) && ! mesh.part)
             mesh.part = node['robotBaseFrame'].add(partName).move(mesh.xyz)
                                                             .turnZ(mesh.rpy[2])
@@ -86,7 +89,7 @@ export const init = async model => {
 
       for(let j of joints)                              // CREATE THE ALL THE OTHER ROBOT PARTS
       for(let mesh of links[j.link]) {
-         let partName = 'SO101/' + mesh.stl;
+         let partName = 'SO101/lowpoly/' + mesh.stl;
          if (clay.formMesh(partName) && ! mesh.part)
             mesh.part = node[j.name].add(partName).move(mesh.xyz)
                                                   .turnZ(mesh.rpy[2])
@@ -94,9 +97,6 @@ export const init = async model => {
                                                   .turnX(mesh.rpy[0])
                                                   .color(mesh.color);
       }
-
-      let m = [0,0,0,0,0,0];
-//    let m = motion(model.time);
 
       let i = 0;                                        // ANIMATE THE ROBOT
       for (let j of joints) {  
@@ -108,5 +108,13 @@ export const init = async model => {
          node[j.name].identity().move(j.xyz).turnZ(z).turnY(y).turnX(x);
          i++;
       }
-   });
-}
+      return m;
+   };
+   return { joints, node, update };
+};
+
+export const init = async model => {
+   const robot = createRobot(model);
+   model.animate(() => robot.update());
+   // To try the example motion: model.animate(() => robot.update(motion(model.time)));
+};
