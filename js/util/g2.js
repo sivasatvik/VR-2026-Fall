@@ -159,6 +159,7 @@ export function G2(do_not_animate_flag=false, canvasWidth=512, canvasHeight) {
          }
       }
       this.draw = () => {
+         g2.textHeight(.09 * size);
          w = textWidth(label[this.state]) + .02 * size;
          let isPressed = this == activeWidget && (mouseState == 'press' || mouseState == 'drag');
          g2.textHeight(.045 * size);
