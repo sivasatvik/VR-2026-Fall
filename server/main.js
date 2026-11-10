@@ -331,11 +331,18 @@ else
 
 // WEBSOCKET ENDPOINT SETUP
 try {
-   var WebSocketServer = require("ws").Server;
+   const WebSocket = require("ws");
+   const WebSocketServer = WebSocket.Server;
 
    var wss = new WebSocketServer({ server: server });
    var websockets = [];
    var clients = [];
+   const warehouseRescueRoster = new Set();
+   const broadcastWarehouseRoster = () => {
+      const message = JSON.stringify({ global: "warehouseRescueRoster", value: [...warehouseRescueRoster] });
+      for (const socket of websockets)
+         if (socket?.readyState === WebSocket.OPEN) socket.send(message);
+   };
 
    wss.on("connection", function(ws) {
 
@@ -345,18 +352,25 @@ try {
 	    ws.index = n;
       websockets[ws.index] = ws;
       clients.push(ws.index);
+      ws.send(JSON.stringify({ global: "connectionClientID", value: ws.index }));
 
       let sendClients = () => {
          let data = JSON.stringify({ global: "clients", value: clients });
          for (var index = 0 ; index < websockets.length ; index++)
-            if (websockets[index])
+            if (websockets[index]?.readyState === WebSocket.OPEN)
                websockets[index].send(data);
       }
       sendClients();
 
       ws.on("message", data => {
+         if (data === "warehouseRescue:join" || data === "warehouseRescue:leave") {
+            if (data === "warehouseRescue:join") warehouseRescueRoster.add(ws.index);
+            else warehouseRescueRoster.delete(ws.index);
+            broadcastWarehouseRoster();
+            return;
+         }
          for (var index = 0 ; index < websockets.length ; index++)
-            if (websockets[index] && index != ws.index)
+            if (index != ws.index && websockets[index]?.readyState === WebSocket.OPEN)
                websockets[index].send(data);
 	 if (readHeader(data) == 'CTdata01') {
 	    holojam.Send(holojam.BuildUpdate('ChalkTalk', [{
@@ -368,6 +382,7 @@ try {
 
       ws.on("close", function() {
          websockets[ws.index] = null;        // REMOVE THIS WEBSOCKET
+         if (warehouseRescueRoster.delete(ws.index)) broadcastWarehouseRoster();
 	 for (let n = 0 ; n < clients.length ; n++)
 	    if (clients[n] == ws.index)
 	       clients.splice(n--, 1);

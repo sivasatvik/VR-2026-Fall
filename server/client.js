@@ -308,7 +308,7 @@ function Server(wsPort) {
          return window[name];                           // SERVER PROVIDES A CLIENT LIST.
 
       if (window.clientID === undefined) {              // ON START-UP, ASSIGN A UNIQUE ID
-         window.clientID = clients[clients.length-1];   // TO THIS CLIENT.
+         window.clientID = window.connectionClientID ?? clients[clients.length-1];
 
          for (let i = 0 ; i < clients.length ; i++)     // ALSO CREATE CHANNEL OBJECTS FOR
             if (clients[i] != clientID) {               // SENDING ONE-TO-ONE PEER CONNECTION
