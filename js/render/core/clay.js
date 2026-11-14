@@ -540,6 +540,8 @@ this.addEventListenersToCanvas = function(canvas) {
    });
 
    window.addEventListener('keydown', function(e) {
+      if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))
+         return;
       switch (e.keyCode) {
       case   8: // DELETE
       case  32: // SPACE
@@ -557,6 +559,8 @@ this.addEventListenersToCanvas = function(canvas) {
    }, true);
 
    window.addEventListener('keyup', function(e) {
+      if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))
+         return;
       canvas.onKeyRelease(e.keyCode, e);
    }, true);
 }

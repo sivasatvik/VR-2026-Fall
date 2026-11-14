@@ -304,6 +304,12 @@ export class InlineViewerHelper {
   }
 
   onKeyUp(e) {
+    // Release modifiers before any interaction mode returns early.
+    if (e.keyCode == 32) this._isSpaceKeyDown = false;
+    if (e.key == 'Shift') this._isShiftKeyDown = false;
+    if (e.key == 'Meta') this._isMetaKeyDown = false;
+    if (e.key == 'Control') this._isControlKeyDown = false;
+
     if (this._isControlKeyDown) {
        if (clay.model._controlActions[e.key]) {
           clay.model._controlActions[e.key].func();
@@ -335,11 +341,7 @@ export class InlineViewerHelper {
        return;
     }
 
-    if (e.keyCode == 32) this._isSpaceKeyDown = false;
     if (e.key == '~') { window.isWhitescreen = ! window.isWhitescreen; return; }
-    if (e.key == 'Shift') this._isShiftKeyDown = false;
-    if (e.key == 'Meta') this._isMetaKeyDown = false;
-    if (e.key == 'Control') this._isControlKeyDown = false;
 
     if (window.interactMode == 3)
        return;
