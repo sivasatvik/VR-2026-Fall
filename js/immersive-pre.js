@@ -278,7 +278,7 @@ function initAudioVolume() {
 function initWebcam() {
    if (! isHeadset) {
       videoElement.innerHTML = '<video id=webcam autoplay=true style="position:absolute;left:-2560px;"></video>';
-      if (navigator.mediaDevices.getUserMedia)
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
         navigator.mediaDevices.getUserMedia({ audio: false, video: true })
                  .then(function(stream) { webcam.srcObject = stream; },
                        function(error ) { console.log(error); });
@@ -651,9 +651,18 @@ async function onSessionStarted(session) {
     // The emulator shows its view and controls only for a baseLayer.
     if (emulatorView)
         window.isLayersSuported = false;
+
+    //Disable layers if not quest
+    if(navigator.userAgent.indexOf('Oculus') < 0)
+    {
+        window.isLayersSuported = false;
+    }
     console.log("layers supported: " + window.isLayersSuported);
 
-    let glLayer = new XRWebGLLayer(session, gl);
+    const layerInit = {
+       framebufferScaleFactor: 1.0,
+    };
+    let glLayer = new XRWebGLLayer(session, gl, layerInit);
     if (window.isLayersSuported && session.isImmersive){
         xrGLFactory = new XRWebGLBinding(session, gl);
         xrLayers.push(glLayer);
