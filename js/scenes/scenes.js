@@ -23,6 +23,7 @@ export default () => {
             { name: "kbdEvents2" , path: "./kbdEvents2.js" , public: true },
             { name: "textEdit"   , path: "./textEdit.js"   , public: true },
             { name: "textEdit2"  , path: "./textEdit2.js"  , public: true },
+            { name: "livingPlantRoom", path: "./livingPlantRoom.js", public: true },
       ]
    };
 }
